@@ -1,0 +1,9 @@
+﻿{
+  "title": "Choose Your Cheese",
+  "description": "[h1][b]Description[/b][/h1]\nIn Slay the Spire 2, some events are unique to each act and some can spawn in several acts. Brain Leech (Share Knowledge), Room Full of Cheese (Chosen Cheese), The Legends Were True (Treasure Map) etc.\n\nWith this mod you can control act spawns for shared events. If you ever wished to get rid of Slippery Bridge or encounter Doll Room on act 1, then try it out! Keep in mind other vanilla requirements are still in place (you won't encounter Relic Trader if you don't have enough relics).\n\nThe interface could use some work, but I don't have much time for development and have decided to release as-is for now. You can report bugs and post suggestions.\n\n[h1][b]FAQ[/b][/h1]\n[i][b]Does it work on the public or beta branch?[/b][/i]\nMade for STS2 public beta v0.105.1 but may work on later versions as well.\n[i][b]Modded events supported?[/b][/i]\nNo. Right now only specific shared events from vanilla are coded.\n\n[h1][b]Notes[/b][/h1]\nThis mod was coded with some LLM assistance.\n[url=https://github.com/DingoDjango/ChooseYourCheese]Source code here (GitHub)[/url]\n\nDonations welcome -\n[url=https://ko-fi.com/dingodjango][img]https://i.imgur.com/xmhpNhy.png[/img][/url]",
+  "visibility": "public",
+  "changeNote": "Initial upload",
+  "tags": ["QoL", "Cheats", "Gameplay", "Events"],
+  "dependencies": [3737335127],
+  "contentDescriptors": []
+}
