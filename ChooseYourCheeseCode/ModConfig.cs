@@ -21,6 +21,8 @@ namespace ChooseYourCheese.ChooseYourCheeseCode
         // Minimum card dimensions so VBoxContainer doesn't collapse before layout
         private const float MinCardWidth = 300f;
         private const float MinCardHeight = MinCardWidth / CardAspectRatio;
+        // Reasonable initial width — optionContainer.Size.X is 0 at setup time
+        private const float InitialCardWidth = 800f;
 
         private const int TitleFontSize = 28;
         private const int StatusFontSize = 20;
@@ -145,6 +147,25 @@ namespace ChooseYourCheese.ChooseYourCheeseCode
             _eventGrid.AddThemeConstantOverride("separation", 20);
             _eventGrid.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
 
+            // optionContainer.Size is (0, 16) at setup, but the parent (_contentPanel)
+            // already has the correct layout size from NModConfigSubmenu.RefreshSize.
+            var parent = optionContainer.GetParent();
+            if (parent is Control parentCtrl && parentCtrl.Size.X > 0)
+            {
+                var usableWidth = parentCtrl.Size.X - (GridPadding * 2);
+                _lastCardWidth = Math.Max(usableWidth, MinCardWidth);
+#if EXPORTDEBUG
+                MainFile.Logger.Info($"[DEBUG] Got initial card width from parent ({parent.GetType().Name}): parent={parentCtrl.Size.X}, usable={usableWidth}, final={_lastCardWidth}");
+#endif
+            }
+            else
+            {
+                _lastCardWidth = InitialCardWidth;
+#if EXPORTDEBUG
+                MainFile.Logger.Info($"[DEBUG] Parent not available for width, using fallback: {_lastCardWidth}");
+#endif
+            }
+
 #if EXPORTDEBUG
             MainFile.Logger.Info($"[DEBUG] VBoxContainer created. _eventGrid.IsInsideTree={_eventGrid.IsInsideTree()}");
 #endif
@@ -171,12 +192,11 @@ namespace ChooseYourCheese.ChooseYourCheeseCode
             AddRestoreDefaultsButton(optionContainer);
             SetupFocusNeighbors(optionContainer);
 
-            _lastCardWidth = MinCardWidth;
             _optionContainerRef.Resized += OnContainerResized;
 
 #if EXPORTDEBUG
-            MainFile.Logger.Info($"[DEBUG] Final layout sizes: optionContainer={optionContainer.Size}, _eventGrid={_eventGrid?.Size}, " +
-                $"first child type={_eventGrid?.GetChild(0)?.GetType().Name}");
+            MainFile.Logger.Info($"[DEBUG] Final: optionContainer={optionContainer.Size}, _eventGrid={_eventGrid?.Size}, " +
+                $"_lastCardWidth={_lastCardWidth}");
 #endif
 
             MainFile.Logger.Info("ChooseYourCheese config UI setup complete");
@@ -337,12 +357,13 @@ namespace ChooseYourCheese.ChooseYourCheeseCode
             titleLabel.VerticalAlignment = VerticalAlignment.Center;
             titleLabel.CustomMinimumSize = new Vector2(cardWidth, cardHeight * 0.15f);
             titleLabel.Position = new Vector2(0, cardHeight * 0.05f);
-            titleLabel.ZIndex = 1;
+            titleLabel.ZIndex = 2;
             cardPanel.AddChild(titleLabel);
 
             var chipsContainer = new HBoxContainer
             {
-                CustomMinimumSize = new Vector2(0, ActChipHeight + 4)
+                CustomMinimumSize = new Vector2(0, ActChipHeight + 4),
+                SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter
             };
 
             chipsContainer.AddChild(CreateActChip(eventDef.Name, 1));
@@ -354,18 +375,17 @@ namespace ChooseYourCheese.ChooseYourCheeseCode
             var chipsWrapper = new CenterContainer
             {
                 CustomMinimumSize = new Vector2(cardWidth, ActChipHeight + 8),
-                Position = new Vector2(0, cardHeight - ActChipHeight - 20),
-                ZIndex = 1
+                Position = new Vector2(0, cardHeight - ActChipHeight - 20)
             };
             chipsWrapper.AddChild(chipsContainer);
             cardPanel.AddChild(chipsWrapper);
 
-            var statusLabel = CreateRawLabelControl($"[b]{GetEventStatus(eventDef)}[/b]", StatusFontSize);
-            statusLabel.HorizontalAlignment = HorizontalAlignment.Center;
-            statusLabel.CustomMinimumSize = new Vector2(cardWidth, cardHeight * 0.1f);
-            statusLabel.Position = new Vector2(0, cardHeight - cardHeight * 0.1f);
-            statusLabel.ZIndex = 1;
-            cardPanel.AddChild(statusLabel);
+            //var statusLabel = CreateRawLabelControl($"[b]{GetEventStatus(eventDef)}[/b]", StatusFontSize);
+            //statusLabel.HorizontalAlignment = HorizontalAlignment.Center;
+            //statusLabel.CustomMinimumSize = new Vector2(cardWidth, cardHeight * 0.1f);
+            //statusLabel.Position = new Vector2(0, cardHeight - cardHeight * 0.1f);
+            //statusLabel.ZIndex = 2;
+            //cardPanel.AddChild(statusLabel);
 
             var button = new Button
             {
@@ -373,14 +393,12 @@ namespace ChooseYourCheese.ChooseYourCheeseCode
                 CustomMinimumSize = new Vector2(cardWidth, cardHeight),
                 Modulate = new Color(1, 1, 1, 0),
                 FocusMode = Control.FocusModeEnum.All,
-                ZIndex = 2
-            };
-
-            button.Pressed += () => ShowActSelectionPopup(eventDef);
-            button.MouseEntered += () => AnimateCardHover(cardPanel, styleBox, true);
-            button.MouseExited += () => AnimateCardHover(cardPanel, styleBox, false);
-            button.FocusEntered += () => AnimateCardHover(cardPanel, styleBox, true);
-            button.FocusExited += () => AnimateCardHover(cardPanel, styleBox, false);
+                ZIndex = 1
+};
+            button.MouseFilter = Control.MouseFilterEnum.Ignore;
+            
+button.Pressed += () => ShowActSelectionPopup(eventDef);
+            button.FocusMode = Control.FocusModeEnum.None;
 
             cardPanel.AddChild(button);
 
@@ -592,14 +610,14 @@ namespace ChooseYourCheese.ChooseYourCheeseCode
             MainFile.Logger.Info($"[DEBUG] Opening act selection popup for {eventDef.Name}");
         }
 
-        private string GetEventStatus(CheeseEvent eventDef)
-        {
-            var acts = new List<string>();
-            if (GetActEnabled(eventDef.Name, 1)) acts.Add("A1");
-            if (GetActEnabled(eventDef.Name, 2)) acts.Add("A2");
-            if (GetActEnabled(eventDef.Name, 3)) acts.Add("A3");
-            return acts.Count > 0 ? string.Join(", ", acts) : "Disabled";
-        }
+        //private string GetEventStatus(CheeseEvent eventDef)
+        //{
+        //    var acts = new List<string>();
+        //    if (GetActEnabled(eventDef.Name, 1)) acts.Add("A1");
+        //    if (GetActEnabled(eventDef.Name, 2)) acts.Add("A2");
+        //    if (GetActEnabled(eventDef.Name, 3)) acts.Add("A3");
+        //    return acts.Count > 0 ? string.Join(", ", acts) : "Disabled";
+        //}
 
         public static void UpdateEventActs()
         {
@@ -655,12 +673,12 @@ namespace ChooseYourCheese.ChooseYourCheeseCode
             MainFile.Logger.Info($"[DEBUG] CreateActChip({eventName}, act={actNumber}): enabled={enabled}, label='{actLabelText}'");
 #endif
 
-            var chip = new CheckBox
+            var checkBox = new CheckBox
             {
                 Text = "",
                 CustomMinimumSize = new Vector2(ActChipWidth, ActChipHeight),
                 SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-                FocusMode = Control.FocusModeEnum.All
+                FocusMode = Control.FocusModeEnum.None
             };
 
             var chipStyle = new StyleBoxFlat
@@ -676,22 +694,32 @@ namespace ChooseYourCheese.ChooseYourCheeseCode
                 CornerRadiusBottomLeft = 6,
                 CornerRadiusBottomRight = 6
             };
-            chip.AddThemeStyleboxOverride("normal", chipStyle);
+            checkBox.AddThemeStyleboxOverride("normal", chipStyle);
+
+            var toggleStyle = new StyleBoxFlat
+            {
+                BgColor = new Color(0.15f, 0.35f, 0.15f, 0.9f),
+                BorderWidthLeft = 2,
+                BorderWidthRight = 2,
+                BorderWidthTop = 2,
+                BorderWidthBottom = 2,
+                BorderColor = new Color(0.3f, 0.7f, 0.3f, 1f),
+                CornerRadiusTopLeft = 6,
+                CornerRadiusTopRight = 6,
+                CornerRadiusBottomLeft = 6,
+                CornerRadiusBottomRight = 6
+            };
+            checkBox.AddThemeStyleboxOverride("pressed", toggleStyle);
 
             var checkboxLabel = CreateRawLabelControl(actLabelText, ActChipFontSize);
-            checkboxLabel.CustomMinimumSize = new Vector2(0, ActChipHeight);
+            checkboxLabel.CustomMinimumSize = new Vector2(ActChipWidth, ActChipHeight);
             checkboxLabel.HorizontalAlignment = HorizontalAlignment.Center;
-            chip.AddChild(checkboxLabel);
+            checkBox.AddChild(checkboxLabel);
 
-            chip.ButtonPressed = enabled;
-            chip.Toggled += (pressed) => OnActChipToggled(eventName, actNumber, pressed);
+            checkBox.ButtonPressed = enabled;
+            checkBox.Toggled += (pressed) => OnActChipToggled(eventName, actNumber, pressed);
 
-            var hbox = new HBoxContainer
-            {
-                CustomMinimumSize = new Vector2(ActChipWidth, ActChipHeight)
-            };
-            hbox.AddChild(chip);
-            return hbox;
+            return checkBox;
         }
 
         [Flags]
