@@ -90,10 +90,6 @@
         <Private>False</Private>
       </Reference>
     </ItemGroup>
-	
-	<ItemGroup Condition="True"> <!--Allows private/protected field references but may cause errors.-->
-        <Publicize Include="sts2" IncludeVirtualMembers="false" IncludeCompilerGeneratedMembers="false" />
-    </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="Alchyr.Sts2.BaseLib" Version="*" PrivateAssets="All" />
